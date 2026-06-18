@@ -300,9 +300,9 @@ pipeline {
             slackSend (
                 channel: '#devops-cicd',
                 color: buildStatus == 'SUCCESS' ? 'good' : 'danger',
-                message: """ ${buildStatus}: " Job "${env.JOB_NAME}" BUIlD #${env.BUILD_NUMBER} 
-                "Started by: ${buildUser}
-                "Build URL: ${buildUrl}"""
+                message: """ ${buildStatus}: Job ${env.JOB_NAME} BUIlD #${env.BUILD_NUMBER} 
+                Started by: ${buildUser}
+                Build URL: ${buildUrl}"""
             )
         }
         emailext (
