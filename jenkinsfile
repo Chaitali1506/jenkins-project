@@ -129,7 +129,7 @@ pipeline {
                             groupId: pom.groupId,
                             version: ARTVERSION,
                             repository: NEXUS_REPOSITORY,
-                            credentialsId: NEXUS_CREDENTIAL_ID,
+                            credentialsId: NEXUS_CREDENTIALS_ID,
                             artifacts: [
                                 [artifactId: pom.artifactId,
                                 classifier: '',
