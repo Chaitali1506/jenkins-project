@@ -117,8 +117,8 @@ pipeline {
                 script{
                     pom = readMavenPom file: 'pom.xml'
                     filesBYGlob = findFiles(glob: 'target/*.jar')
-                    echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
-                    artifactPath = filesByGlob[0].path
+                    echo "${filesBYGlob[0].name} ${filesBYGlob[0].path} ${filesBYGlob[0].directory} ${filesBYGlob[0].length} ${filesBYGlob[0].lastModified}"
+                    artifactPath = filesBYGlob[0].path
                     artifactExists = fileExists artifactPath
                     if (artifactExists) {
                         echo "Artifact found at: ${artifactPath}"
@@ -249,7 +249,7 @@ pipeline {
                 def exitCode = sh(script: '''
                     docker run --rm --user root --network host -v $(pwd):/zap/wrk:rw \
                     -t http://localhost:8080 \
-                    -r zap_report.html' -J zap_report.json
+                    -r zap_report.html -J zap_report.json
                 ''', returnStatus: true)
 
                 echo 'ZAP scan completed with exit code: ${exitCode}'
