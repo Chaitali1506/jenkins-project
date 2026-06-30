@@ -34,6 +34,12 @@ pipeline {
             }
         }
         stage('Maven Build') {
+          environment {
+                // This fetches the actual path of the configured 'jdk21' tool
+                JAVA_HOME = tool 'jdk21'
+                // This ensures the JDK 21 binary folder takes priority in the executable path
+                PATH = "${JAVA_HOME}/bin:${env.PATH}"
+            }
             steps {
                 sh 'mvn clean install -DskipTests'
             }
