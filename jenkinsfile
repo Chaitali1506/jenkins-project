@@ -34,14 +34,29 @@ pipeline {
             }
         }
         stage('Maven Build') {
-          environment {
-                // This fetches the actual path of the configured 'jdk21' tool
-                JAVA_HOME = tool 'jdk21'
-                // This ensures the JDK 21 binary folder takes priority in the executable path
-                PATH = "${JAVA_HOME}/bin:${env.PATH}"
-            }
-            steps {
-                sh 'mvn clean package -DskipTests -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
+          steps {
+                script {
+                    // 1. Force Jenkins to resolve the dynamic installation directory path for jdk21 and maven3
+                    def javaHomeDir = tool name: 'jdk21', type: 'jdk'
+                    def mavenHomeDir = tool name: 'maven3', type: 'hudson.tasks.Maven$MavenInstallation'
+                    
+                    // 2. Wrap the execution context with these strict paths overriding everything else
+                    withEnv([
+                        "JAVA_HOME=${javaHomeDir}",
+                        "M2_HOME=${mavenHomeDir}",
+                        "PATH=${javaHomeDir}/bin:${mavenHomeDir}/bin:${env.PATH}"
+                    ]) {
+                        // 3. Print out a debug log to your console to guarantee Java 21 is active
+                        echo "--- VERIFYING PIPELINE EXECUTION ENGINES ---"
+                        sh 'java -version'
+                        sh 'javac -version'
+                        sh 'mvn -version'
+                        echo "--------------------------------------------"
+                        
+                        // 4. Run the build cleanly with your explicit paths
+                        sh 'mvn clean install -DskipTests'
+                    }
+                }
             }
             post {
                 success {
