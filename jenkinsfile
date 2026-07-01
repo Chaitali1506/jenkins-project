@@ -19,8 +19,7 @@ pipeline {
         registrycredential = 'ecr.ap-south-1:awscreds'
         registry = 'https://296021880241.dkr.ecr.ap-south-1.amazonaws.com'
         IMAGE_NAME = '296021880241.dkr.ecr.ap-south-1.amazonaws.com/your-app-name' // Added app name placeholder
-    }
-    
+    }    
     stages {
         stage('Clean Workspace') {
             steps {
