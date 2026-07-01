@@ -1,4 +1,4 @@
-pipeline {                                                                                                                    
+pipeline {                                                                                         
     agent any
 
     tools {
@@ -10,7 +10,7 @@ pipeline {
         SCANNER_HOME = tool 'sonar-scanner'
         NEXUS_VERSION = 'nexus3'
         NEXUS_PROTOCOL = 'http'
-        NEXUS_URL = '43.204.100.122:8081' // Update with your actual Nexus IP
+        NEXUS_URL = '13.233.1.47:8081'
         NEXUS_REPOSITORY = 'devops-repo'
         NEXUS_REPO_ID = 'devops-repo'
         NEXUS_CREDENTIALS_ID = 'nexus-cred'
@@ -18,8 +18,8 @@ pipeline {
 
         registrycredential = 'ecr.ap-south-1:awscreds'
         registry = 'https://296021880241.dkr.ecr.ap-south-1.amazonaws.com'
-        IMAGE_NAME = '296021880241.dkr.ecr.ap-south-1.amazonaws.com/your-app-name' // Added app name placeholder
-    }    
+        IMAGE_NAME = '296021880241.dkr.ecr.ap-south-1.amazonaws.com/'
+    }
     stages {
         stage('Clean Workspace') {
             steps {
@@ -28,34 +28,12 @@ pipeline {
         }
         stage('git Checkout') {
             steps {
-                // ⚠️ FIX: You must provide your Git repository URL here
                 git branch: 'main', url: 'https://github.com/Chaitali1506/jenkins-project.git'
             }
         }
         stage('Maven Build') {
             steps {
-                script {
-                    // 1. Force Jenkins to resolve the dynamic installation directory path for jdk21 and maven3
-                    def javaHomeDir = tool name: 'jdk21', type: 'jdk'
-                    def mavenHomeDir = tool name: 'maven3', type: 'hudson.tasks.Maven$MavenInstallation'
-                    
-                    // 2. Wrap the execution context with these strict paths overriding everything else
-                    withEnv([
-                        "JAVA_HOME=${javaHomeDir}",
-                        "M2_HOME=${mavenHomeDir}",
-                        "PATH=${javaHomeDir}/bin:${mavenHomeDir}/bin:${env.PATH}"
-                    ]) {
-                        // 3. Print out a debug log to your console to guarantee Java 21 is active
-                        echo "--- VERIFYING PIPELINE EXECUTION ENGINES ---"
-                        sh 'java -version'
-                        sh 'javac -version'
-                        sh 'mvn -version'
-                        echo "--------------------------------------------"
-                        
-                        // 4. Run the build cleanly with your explicit paths
-                        sh 'mvn clean install -DskipTests'
-                    }
-                }
+                sh 'mvn clean install -DskipTests'
             }
             post {
                 success {
@@ -74,13 +52,13 @@ pipeline {
                 }
                 failure {
                     echo 'Unit Tests Failed'
-                    junit '*/target/surefire-reports/.xml'
+                    junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
         stage('integration test') {
             steps {
-                sh 'mvn verify'
+                sh 'mvn verify -DskipUnitTests'
             }
             post {
                 success {
@@ -88,7 +66,7 @@ pipeline {
                 }
                 failure {
                     echo 'Integration Tests Failed'
-                    junit '*/target/failsafe-reports/.xml'
+                    junit '**/target/failsafe-reports/*.xml'
                 }
             }
         }
@@ -114,14 +92,14 @@ pipeline {
         stage('codeanalysis with sonarqube') {
             steps {
                 withSonarQubeEnv('sonar-server') {
-                    sh """${SCANNER_HOME}/bin/sonar-scanner \
+                    sh '''${SCANNER_HOME}/bin/sonar-scanner \
                         -Dsonar.projectKey=devops-project \
                         -Dsonar.sources=. \
                         -Dsonar.java.binaries=target/classes \
                         -Dsonar.junit.reportPaths=target/surefire-reports \
                         -Dsonar.jacoco.reportPaths=target/jacoco.exec \
                         -Dsonar.java.checkstyle.reportPaths=target/site/checkstyle.xml \
-                    """    
+                    '''    
                 }
             }
         }
@@ -139,8 +117,7 @@ pipeline {
                 script{
                     pom = readMavenPom file: 'pom.xml'
                     filesBYGlob = findFiles(glob: 'target/*.jar')
-                    echo "${filesBYGlob[0].name} ${filesBYGlob[0].path}"
-                    
+                    echo "${filesBYGlob[0].name} ${filesBYGlob[0].path} ${filesBYGlob[0].directory} ${filesBYGlob[0].length} ${filesBYGlob[0].lastModified}"
                     artifactPath = filesBYGlob[0].path
                     artifactExists = fileExists artifactPath
                     if (artifactExists) {
@@ -154,13 +131,21 @@ pipeline {
                             repository: NEXUS_REPOSITORY,
                             credentialsId: NEXUS_CREDENTIALS_ID,
                             artifacts: [
-                                [artifactId: pom.artifactId, classifier: '', file: artifactPath, type: pom.packaging],
-                                [artifactId: pom.artifactId, classifier: '', file: "pom.xml", type: "pom"]
+                                [artifactId: pom.artifactId,
+                                classifier: '',
+                                file: artifactPath,
+                                type: pom.packaging],
+                                [artifactId: pom.artifactId,
+                                classifier: '',
+                                file: "pom.xml",
+                                type: "pom"]
                             ]
                         )
-                    } else {
-                        error "Artifact not found at path: ${artifactPath}"
-                    }
+                    } 
+                    else {
+                    error "Artifact not found at path: ${artifactPath}"
+                }
+
                 }
             }
         }
@@ -205,7 +190,8 @@ pipeline {
         stage('build docker image') {
             steps {
                 script {
-                    env.IMAGE_TAG = "${IMAGE_NAME}:${BUILD_NUMBER}"
+                    //sh 'aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 296021880241.dkr.ecr.ap-south-1.amazonaws.com'
+                    env.IMAGE_TAG = "${IMAGE_NAME}${BUILD_NUMBER}"
                     sh "docker rmi -f ${IMAGE_NAME}:latest ${env.IMAGE_TAG} || true "
                     
                     dockerImage = docker.build("${IMAGE_NAME}:latest", '.')
@@ -213,13 +199,14 @@ pipeline {
                 }
             }
         }
-        stage('trivy scan image') { 
+        stage('trivy scan image') {
             steps {
                 sh """
                 echo 'Running trivy scan on Docker image : ${env.IMAGE_TAG}'
                 trivy image -f html -o trivy-image-scan-report.html ${env.IMAGE_TAG}
                 trivy image -f table -o trivy-image-scan-report.txt ${env.IMAGE_TAG}
                 """
+                // trivy image --format template --template '@contrib/html.tpl' -o trivy-image-scan-report.html ${IMAGE_NAME}:latest"
             }
             post {
                 success {
@@ -240,8 +227,8 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry(registry, registrycredential) {
-                        dockerImage.push("${BUILD_NUMBER}")
-                        sh "docker push ${env.IMAGE_TAG}"
+                    dockerImage.push ("${BUILD_NUMBER}")
+                    sh "docker push ${env.IMAGE_TAG}"
                     }
                 }
             }
@@ -253,82 +240,85 @@ pipeline {
                     sh "docker rm -f devops-repo || true"
                     sh "docker run -d --name devops-repo -p 8080:8080 ${env.IMAGE_TAG}"
                 }
+                // Add deployment steps here (e.g., using kubectl, docker run, etc.)
             }
         }
         stage('DAST Scan with OWASP ZAP') {
             steps {
                 echo 'Running DAST scan on deployed application...'
-                script {
-                    // Using zap-baseline script context inside the docker structure to ensure safe exits
-                    def exitCode = sh(script: '''
-                        docker run --rm --user root --network host -v \$(pwd):/zap/wrk:rw \
-                        ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-                        -t http://localhost:8080 \
-                        -r zap_report.html -J zap_report.json || true
-                    ''', returnStatus: true)
+                def exitCode = sh(script: '''
+                    docker run --rm --user root --network host -v $(pwd):/zap/wrk:rw \
+                    -t http://localhost:8080 \
+                    -r zap_report.html -J zap_report.json
+                ''', returnStatus: true)
 
-                    echo "ZAP scan completed with exit code: ${exitCode}"
-                    
-                    // ⚠️ FIX: Cleaned up the broken if-else structure and enclosed publish step correctly
-                    publishHTML(target: [
-                        reportName: 'OWASP ZAP DAST Report',
-                        reportDir: '.',
-                        reportFiles: 'zap_report.html',
-                        keepAll: true,
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        includeInEmail: true
-                    ])
+                echo 'ZAP scan completed with exit code: ${exitCode}'
+                if (exitCode != 0) {
+                    error "ZAP scan failed with exit code: ${exitCode}" 
 
-                    if (exitCode != 0) {
-                        echo "ZAP detected warnings/failures. Evaluation ongoing."
-                    } else {
-                        echo 'ZAP scan completed successfully with no structural vulnerabilities found.'
-                    }
-                }
+                 publishHTML(target: [
+                    reportName: 'OWASP ZAP DAST Report',
+                    reportDir: '.',
+                    reportFiles: 'zap_report.html',
+                    keepAll: true,
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    includeInEmail: true
+                ])
+                 publishHTML(target: [
+                    reportName: 'OWASP ZAP DAST JSON Report',
+                    reportDir: '.',
+                    reportFiles: 'zap_report.json',
+                    keepAll: true,
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    includeInEmail: true
+                ])
+                // Add DAST scanning steps here (e.g., using OWASP ZAP, etc.)
             }
-            post {
-                always {
-                    echo 'archiving zap scan reports.'
-                    archiveArtifacts artifacts: 'zap_report.html', fingerprint: true, allowEmptyArchive: true
-                }
-            }        
+            else{
+                echo 'ZAP scan completed successfully with no vulnerabilities found.'
+            }
+            }
         }
+        post {
+            always {
+                echo 'archiving zap scan reports.'
+                archiveArtifacts artifacts: 'zap_report.html', fingerprint: true
+            }
+        }        
     }
-    
-    // Global notifications
-    post {
-        always {
-            script {
-                // ⚠️ FIX: Instantiated variables here so both notifications can access them globally
-                def buildStatus = currentBuild.currentResult
-                def buildUser = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')[0]?.userId ?: 'Git Trigger'
-                def buildUrl = env.BUILD_URL
-
-                // Slack Notification
-                slackSend (
-                    channel: '#devops-cicd',
-                    color: buildStatus == 'SUCCESS' ? 'good' : 'danger',
-                    message: "${buildStatus}: Job ${env.JOB_NAME} BUILD #${env.BUILD_NUMBER}\nStarted by: ${buildUser}\nBuild URL: ${buildUrl}"
-                )
-
-                // Email Notification placed inside script block to easily read scope variables safely
-                emailext (
-                    subject: "Build Pipeline ${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-                    body: """
-                        <p>Maven and Devops CI-CD Pipeline Build Status</p>
-                        <p>Build Status: <b>${buildStatus}</b></p>
-                        <p>Project: <b>${env.JOB_NAME}</b></p>
-                        <p>Build Number: <b>${env.BUILD_NUMBER}</b></p>
-                        <p>Started by: <b>${buildUser}</b></p>
-                        <p>Build URL: <a href="${buildUrl}">${buildUrl}</a></p>
-                    """,
-                    to: 'chaitalikale1512003@gmail.com',
-                    from: 'chaitalikale1512003@gmail.com',
-                    mimeType: 'text/html',
-                    attachmentsPattern: 'zap_report.html,trivy-file-scan-report.html,trivy-image-scan-report.html,target/site/checkstyle.html,target/dependency-check-report/dependency-check-report.html'
-                )        
-            }
-        }
-    } 
 }
+ post {
+    always {
+        script {
+            def buildStatus = currentBuild.currentResult
+            def buildUser = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')[0]?.userId ?: 'Github User'
+            def buildUrl = env.BUILD_URL
+
+            // slack notification
+            slackSend (
+                channel: '#devops-cicd',
+                color: buildStatus == 'SUCCESS' ? 'good' : 'danger',
+                message: """${buildStatus}: Job ${env.JOB_NAME} BUIlD #${env.BUILD_NUMBER} 
+                Started by: ${buildUser}
+                Build URL: ${buildUrl}"""
+            )
+        }
+        emailext (
+            subject: "Build Pipeline ${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+            body: """
+                    <p>Maven and Devops CI-CD Pipeline Build Status</p>
+                    <p>Build Status: <b>${currentBuild.currentResult}</b></p>
+                    <p>Project: <b>${env.JOB_NAME}</b></p>
+                    <p>Build Number: <b>${env.BUILD_NUMBER}</b></p>
+                    <p>Started by: <b>${buildUser}</b></p>
+                    <p>Build URL: <a href="${buildUrl}">${buildUrl}</a></p>
+                    """,
+                to: 'chaitalikale1512003@gmail.com',
+                from: 'chaitalikale1512003@gmail.com',
+                mimeType: 'text/html',
+                attachmentsPattern: 'zap_report.html,trivy-file-scan-report.html,trivy-image-scan-report.html,checkstyle.html,dependency-check-report.html'
+        )        
+    }
+} 
