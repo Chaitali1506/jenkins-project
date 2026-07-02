@@ -96,11 +96,13 @@ pipeline {
                 withSonarQubeEnv('sonar-server') {
                     sh """${SCANNER_HOME}/bin/sonar-scanner \
                         -Dsonar.projectKey=devops-project \
-                        -Dsonar.sources=. \
+                        -Dsonar.sources=src/main/java \
+                        -Dsonar.tests=src/test/java \
                         -Dsonar.java.binaries=target/classes \
                         -Dsonar.junit.reportPaths=target/surefire-reports \
                         -Dsonar.jacoco.reportPaths=target/jacoco.exec \
                         -Dsonar.java.checkstyle.reportPaths=target/site/checkstyle.xml \
+                        -Dsonar.exclusions=target/**,.git/** \
                     """    
                 }
             }
