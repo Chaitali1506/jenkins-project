@@ -10,7 +10,7 @@ pipeline {
         SCANNER_HOME = tool 'sonar-scanner'
         NEXUS_VERSION = 'nexus3'
         NEXUS_PROTOCOL = 'http'
-        NEXUS_URL = '13.233.121.17:8081' // Update with your actual Nexus IP
+        NEXUS_URL = '52.66.238.94:8081' // Update with your actual Nexus IP
         NEXUS_REPOSITORY = 'devops-repo'
         NEXUS_REPO_ID = 'devops-repo'
         NEXUS_CREDENTIALS_ID = 'nexus-cred'
@@ -111,7 +111,7 @@ pipeline {
             steps {
               script {
                 timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true, credentialsId: 'sonar-cred'
+                    waitForQualityGate abortPipeline: true, credentialsId: 'sonarqube-token'
                 }
               }
             }
