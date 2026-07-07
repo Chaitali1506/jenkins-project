@@ -232,7 +232,7 @@ pipeline {
                 echo 'Deploying application to container...'
                 script {
                     sh "docker rm -f devops-repo || true"
-                    sh "docker run -d --name devops-repo -p 8080:8080 ${env.IMAGE_TAG}"
+                    sh "docker run -d --name devops-repo -p 8080:8080 ${env.FULL_IMAGE}"
                 }
             }
         }
@@ -241,13 +241,15 @@ pipeline {
                 echo 'Running DAST scan on deployed application...'
                 script {
                     // Using zap-baseline script context inside the docker structure to ensure safe exits
-                    def exitCode = sh(script: '''
+                    def exitCode = sh(
+                        script: '''
                         docker run --rm --user root --network host -v \$(pwd):/zap/wrk:rw \
                         ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
                         -t http://localhost:8080 \
                         -r zap_report.html -J zap_report.json || true
-                    ''', returnStatus: true)
-
+                        ''', 
+                        returnStatus: true
+                    )
                     echo "ZAP scan completed with exit code: ${exitCode}"
                     
                     // ⚠️ FIX: Cleaned up the broken if-else structure and enclosed publish step correctly
