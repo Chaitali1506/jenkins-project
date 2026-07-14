@@ -238,14 +238,14 @@ pipeline {
         }
         stage('Deploy to Container') {
             steps {
-                echo 'Deploying application to container...'
-                withEnv(["FULL_IMAGE=${env.FULL_IMAGE}"])   
+                echo 'Deploying application to container...'   
                 script {
-                    //sh "docker rm -f devops-repo || true"
-                    //sh "docker run -d --name devops-repo -p 8081:8080 ${env.FULL_IMAGE}"
-                    sh "docker compose down || true"
-                    sh "docker compose up -d"
-                }
+                    withEnv(["FULL_IMAGE=${env.FULL_IMAGE}"]) {
+                        //sh "docker rm -f devops-repo || true"
+                        //sh "docker run -d --name devops-repo -p 8081:8080 ${env.FULL_IMAGE}"
+                        sh "docker compose down || true"
+                        sh "docker compose up -d"
+                    }
             }
         }
         stage('DAST Scan with OWASP ZAP') {
