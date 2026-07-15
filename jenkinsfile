@@ -273,7 +273,7 @@ pipeline {
                         keepAll: true,
                         allowMissing: true,
                         alwaysLinkToLastBuild: true,
-                        includeInEmail: true
+                        includeInEmail: false
                     ])
 
                     if (exitCode != 0) {
