@@ -86,7 +86,7 @@ pipeline {
                         keepAll: true,
                         allowMissing: false,
                         alwaysLinkToLastBuild: true,
-                        /*includeInEmail: true*/
+                        includeInEmail: true
                     ])
                 }
             }
@@ -325,7 +325,7 @@ pipeline {
                     to: 'chaitalikale1512003@gmail.com',
                     from: 'chaitalikale1512003@gmail.com',
                     mimeType: 'text/html',
-                    /*attachmentsPattern: 'zap_report.html,trivy-file-scan-report.html,trivy-image-scan-report.html,target/site/checkstyle.html'*/
+                    attachmentsPattern: 'zap_report.html,trivy-file-scan-report.html,trivy-image-scan-report.html,target/site/checkstyle.html'
                 )
                 } catch (Exception e) {
                     echo "Email notification failed: ${e.getMessage()}"
