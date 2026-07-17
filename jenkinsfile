@@ -99,9 +99,9 @@ pipeline {
                         -Dsonar.sources=src/main/java \
                         -Dsonar.tests=src/test/java \
                         -Dsonar.java.binaries=target/classes \
-                        -Dsonar.junit.reportPaths=target/surefire-reports \
+                        -Dsonar.junit.reportPaths=target/ \
                         -Dsonar.jacoco.reportPaths=target/jacoco.exec \
-                        -Dsonar.java.checkstyle.reportPaths=target/site/checkstyle.xml \
+                        -Dsonar.java.checkstyle.reportPaths=target/reports/checkstyle.xml \
                         -Dsonar.exclusions=target/**,.git/** \
                     """    
                 }
@@ -325,7 +325,7 @@ pipeline {
                     to: 'chaitalikale1512003@gmail.com',
                     from: 'chaitalikale1512003@gmail.com',
                     mimeType: 'text/html',
-                    attachmentsPattern: 'zap_report.html,trivy-file-scan-report.html,trivy-image-scan-report.html,target/site/checkstyle.html'
+                    attachmentsPattern: 'zap_report.html,trivy-file-scan-report.html,trivy-image-scan-report.html,target/reports/checkstyle.html'
                 )
                 } catch (Exception e) {
                     echo "Email notification failed: ${e.getMessage()}"
