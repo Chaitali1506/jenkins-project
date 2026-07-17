@@ -54,7 +54,7 @@ pipeline {
                 }
                 failure {
                     echo 'Unit Tests Failed'
-                    junit '**/target/surefire-reports/*.xml'
+                    junit '**/target/*.xml'
                 }
             }
         }
