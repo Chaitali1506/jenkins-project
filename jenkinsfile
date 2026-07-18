@@ -148,15 +148,17 @@ pipeline {
         }
         stage('OWASP Dependency Check Scan') {
             steps {
+                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
                 dependencyCheck(
                     odcInstallation: 'dp-check',
-                    additionalArguments: '--scan . --format ALL'
+                    additionalArguments: '--scan . --format ALL --nvdApiKey ${NVD_API_KEY}'
                 )
+                }
             }
             post {
                 always {
                     dependencyCheckPublisher(
-                        pattern: '**/dependency-check-report.xml'
+                        pattern: '**/dependency-check-report.html'
                     )
                 }
             }
@@ -327,7 +329,7 @@ pipeline {
                     to: 'chaitalikale1512003@gmail.com',
                     from: 'chaitalikale1512003@gmail.com',
                     mimeType: 'text/html',
-                    attachmentsPattern: 'zap_report.html,trivy-file-scan-report.html,trivy-image-scan-report.html,target/reports/checkstyle.html'
+                    attachmentsPattern: 'zap_report.html,trivy-file-scan-report.html,trivy-image-scan-report.html,target/reports/checkstyle.html,dependency-check-report.html'
                 )
                 } catch (Exception e) {
                     echo "Email notification failed: ${e.getMessage()}"
