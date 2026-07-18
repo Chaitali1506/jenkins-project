@@ -146,17 +146,19 @@ pipeline {
                 }
             }
         }
-        stage("OWASP Dependency Check Scan") {
+        stage('OWASP Dependency Check Scan') {
             steps {
                 dependencyCheck(
                     odcInstallation: 'dp-check',
-                    additionalArguments: '''
-                        --scan .
-                        --noupdate
-                        --disableYarnAudit
-                        --disableNodeAudit
-                        '''
+                    additionalArguments: '--scan . --format ALL'
+                )
+            }
+            post {
+                always {
+                    dependencyCheckPublisher(
+                        pattern: '**/dependency-check-report.xml'
                     )
+                }
             }
         }
         stage('trivy file scan') {
