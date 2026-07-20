@@ -279,7 +279,6 @@ pipeline {
                         alwaysLinkToLastBuild: true,
                         includeInEmail: true
                     ])
-
                     if (exitCode != 0) {
                         echo "ZAP detected warnings/failures. Evaluation ongoing."
                     } else {
